@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
-import { Database } from 'lucide-react';
 import { LegalSlideModal } from './LegalSlideModal';
 
 interface FooterProps {
   onOpenLegal?: (tab: 'terms' | 'privacy') => void;
   onOpenAdmin?: () => void;
   onOpenAffiliate?: () => void;
-  onOpenDatabaseSettings?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onOpenLegal,
   onOpenAdmin,
   onOpenAffiliate,
-  onOpenDatabaseSettings,
 }) => {
   const [internalModal, setInternalModal] = useState<{
     isOpen: boolean;
@@ -91,19 +88,6 @@ export const Footer: React.FC<FooterProps> = ({
         >
           Privacy Policy
         </button>
-
-        {onOpenDatabaseSettings && (
-          <>
-            <span className="text-white/20 select-none">•</span>
-            <button
-              onClick={onOpenDatabaseSettings}
-              className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-white hover:underline transition-colors cursor-pointer focus:outline-none"
-            >
-              <Database className="w-3.5 h-3.5 text-[#00D26A]" />
-              <span>Database Connection</span>
-            </button>
-          </>
-        )}
       </div>
 
       {/* Legal Slide Modal fallback if not handled by parent */}

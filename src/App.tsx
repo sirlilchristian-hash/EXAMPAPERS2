@@ -63,10 +63,7 @@ function AppContent() {
     }
   };
 
-  const handleOpenDatabaseSettings = () => {
-    setAdminInitialSection('supabase');
-    setIsAdminOpen(true);
-  };
+
 
   const handleCloseAdmin = () => {
     setIsAdminOpen(false);
@@ -191,7 +188,6 @@ function AppContent() {
         onSelectTab={handleSelectTab}
         onContactClick={() => handleSelectTab('contact')}
         onDownloadClick={() => handleSelectTab('search')}
-        onOpenDatabaseSettings={handleOpenDatabaseSettings}
       />
 
       {/* Main Content Body with Smooth Motion Route Transitions */}
@@ -327,7 +323,6 @@ function AppContent() {
         onOpenLegal={handleOpenLegal}
         onOpenAdmin={handleOpenAdmin}
         onOpenAffiliate={() => handleSelectTab('affiliate')}
-        onOpenDatabaseSettings={handleOpenDatabaseSettings}
       />
 
       {/* Full-Screen Slide Modal for Terms & Conditions and Privacy Policy */}

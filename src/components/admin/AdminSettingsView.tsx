@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Sliders, Key, DollarSign, Lock, CheckCircle2, AlertCircle, Loader2, Github } from 'lucide-react';
+import { Sliders, Key, DollarSign, Lock, CheckCircle2, AlertCircle, Loader2, Github, Database } from 'lucide-react';
 import { AdminGitHubView } from './AdminGitHubView';
+import { AdminSupabaseSettingsView } from './AdminSupabaseSettingsView';
 
 interface AdminSettingsViewProps {
   currentPin: string;
@@ -26,7 +27,7 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
   const [isUpdatingPrice, setIsUpdatingPrice] = useState(false);
 
   // Active Section Tab
-  const [activeSettingsTab, setActiveSettingsTab] = useState<'all' | 'github' | 'general' | 'password'>('github');
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'all' | 'supabase' | 'github' | 'general' | 'password'>('supabase');
 
   // Password Change State
   const [cpCurrent, setCpCurrent] = useState('');
@@ -127,6 +128,18 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950 border border-slate-800/80 self-start sm:self-auto overflow-x-auto max-w-full">
           <button
             type="button"
+            onClick={() => setActiveSettingsTab('supabase')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              activeSettingsTab === 'supabase'
+                ? 'bg-[#00D26A] text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Supabase Database</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveSettingsTab('github')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               activeSettingsTab === 'github'
@@ -172,6 +185,11 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Supabase Database Section */}
+      {(activeSettingsTab === 'supabase' || activeSettingsTab === 'all') && (
+        <AdminSupabaseSettingsView />
+      )}
 
       {/* GitHub Repository Section */}
       {(activeSettingsTab === 'github' || activeSettingsTab === 'all') && (

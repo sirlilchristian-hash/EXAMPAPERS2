@@ -67,6 +67,11 @@ const SECTION_METADATA: Record<AdminSection, { title: string; category: string; 
     category: 'System',
     description: 'Security PIN configuration, paper pricing rates, and password management',
   },
+  supabase: {
+    title: 'Connect to Existing Supabase Database',
+    category: 'System',
+    description: 'Configure and test live connection to existing Supabase project and verify Papers table',
+  },
   github: {
     title: 'GitHub Repository Integration',
     category: 'System',

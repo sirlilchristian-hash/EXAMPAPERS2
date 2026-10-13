@@ -12,6 +12,7 @@ import {
   Users,
   ChevronRight,
   FileText,
+  Database,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -22,6 +23,7 @@ interface HeaderProps {
   onSelectTab?: (tab: NavTab) => void;
   onContactClick?: () => void;
   onDownloadClick?: () => void;
+  onOpenDatabaseSettings?: () => void;
 }
 
 const NAV_ITEMS: { id: NavTab; label: string; icon: React.ElementType }[] = [
@@ -203,6 +205,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTab,
   onContactClick,
   onDownloadClick,
+  onOpenDatabaseSettings,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -250,6 +253,18 @@ export const Header: React.FC<HeaderProps> = ({
               Powered by <strong className="text-white font-semibold">Godrerytone Ltd</strong>
             </span>
           </div>
+
+          {/* Database Connection Settings Quick Button */}
+          {onOpenDatabaseSettings && (
+            <button
+              onClick={onOpenDatabaseSettings}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full border border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs sm:text-sm font-bold transition-all duration-200 active:scale-95 cursor-pointer shrink-0"
+              title="Connect to Existing Supabase Database"
+            >
+              <Database className="w-3.5 h-3.5 text-[#00D26A]" />
+              <span className="hidden sm:inline">Database</span>
+            </button>
+          )}
 
           {/* View Your Document Button */}
           <button

@@ -10,6 +10,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Trash2,
+  Database,
 } from 'lucide-react';
 import { Paper, ExamPaperAdminItem } from '../types';
 import {
@@ -38,6 +39,7 @@ import { AdminDeviceRequestsView } from './admin/AdminDeviceRequestsView';
 import { AdminUsersView } from './admin/AdminUsersView';
 import { AdminAddUserView } from './admin/AdminAddUserView';
 import { AdminSettingsView } from './admin/AdminSettingsView';
+import { AdminSupabaseSettingsView } from './admin/AdminSupabaseSettingsView';
 import { AdminGitHubView } from './admin/AdminGitHubView';
 import { AdminSystemStatusView } from './admin/AdminSystemStatusView';
 import { ActivationResultModal } from './admin/ActivationResultModal';
@@ -69,6 +71,7 @@ interface AdminPortalProps {
   isLoadingPapers?: boolean;
   papersError?: string | null;
   onRefreshPapers?: () => Promise<void>;
+  initialSection?: AdminSection;
 }
 
 export const initialPapers: Paper[] = [];
@@ -81,6 +84,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   isLoadingPapers = false,
   papersError = null,
   onRefreshPapers,
+  initialSection = 'dashboard',
 }) => {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -93,8 +97,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
   // Active Section Navigation & Mobile Sidebar
-  const [activeSection, setActiveSection] = useState<AdminSection>('dashboard');
+  const [activeSection, setActiveSection] = useState<AdminSection>(initialSection);
+  const [showSupabaseSetup, setShowSupabaseSetup] = useState<boolean>(initialSection === 'supabase');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+
+  // Keep active section in sync if initialSection changes
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+      if (initialSection === 'supabase') {
+        setShowSupabaseSetup(true);
+      }
+    }
+  }, [initialSection]);
 
   // Data Collections
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
@@ -599,8 +614,38 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     );
   }
 
-  // Render Login Card if not authenticated
+  // Render Login Card or Supabase Setup if not authenticated
   if (!isAuthenticated) {
+    if (showSupabaseSetup) {
+      return (
+        <div className="fixed inset-0 z-50 bg-[#0B0F17] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="w-full max-w-4xl my-auto">
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowSupabaseSetup(false)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+              >
+                ← Back to Admin Sign In
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Return to Storefront"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <AdminSupabaseSettingsView
+              onClose={onClose}
+              onConfigSaved={onRefreshPapers}
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="fixed inset-0 z-50 bg-[#0B0F17] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative my-auto">
@@ -698,9 +743,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </button>
           </form>
 
-          <div className="pt-3 border-t border-slate-800/80 text-center">
-            <p className="text-[11px] text-slate-500">
-              Protected System: Access restricted to authorized administrative personnel only.
+          {/* Quick Access to Supabase Settings */}
+          <div className="pt-3 border-t border-slate-800/80 flex flex-col items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowSupabaseSetup(true)}
+              className="text-xs font-bold text-[#00D26A] hover:underline inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-emerald-500/10 transition-colors cursor-pointer"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Connect to Existing Supabase Database</span>
+            </button>
+            <p className="text-[11px] text-slate-500 text-center">
+              Configure or verify your database connection credentials without signing in.
             </p>
           </div>
         </div>
@@ -846,6 +900,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               defaultPrice={defaultPrice}
               onUpdatePrice={handleUpdateDefaultPrice}
             />
+          )}
+
+          {activeSection === 'supabase' && (
+            <AdminSupabaseSettingsView onConfigSaved={onRefreshPapers} />
           )}
 
           {activeSection === 'github' && (

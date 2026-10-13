@@ -19,6 +19,7 @@ export type AdminSection =
   | 'admin_users'
   | 'add_admin'
   | 'settings'
+  | 'supabase'
   | 'github'
   | 'system_status';
 

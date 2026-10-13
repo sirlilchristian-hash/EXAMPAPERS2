@@ -13,6 +13,7 @@ import {
   Sliders,
   Activity,
   GitBranch,
+  Database,
   LogOut,
   Building2,
   X,
@@ -200,6 +201,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               System
             </div>
             {renderNavButton('settings', 'Settings', Sliders)}
+            {renderNavButton('supabase', 'Supabase Database', Database)}
             {renderNavButton('github', 'GitHub Repository', GitBranch)}
             {renderNavButton('system_status', 'System Status', Activity)}
           </div>

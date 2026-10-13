@@ -359,6 +359,54 @@ const rawSupabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 let supabaseAdmin: any;
+let isLiveSupabaseActive = false;
+
+function applySupabaseConfig(url: string, serviceKey: string, anonKey?: string) {
+  const cleanUrl = url.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '').trim();
+  const cleanServiceKey = serviceKey.trim();
+  const cleanAnonKey = (anonKey || '').trim();
+
+  process.env.VITE_SUPABASE_URL = cleanUrl;
+  process.env.SUPABASE_URL = cleanUrl;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = cleanServiceKey;
+  if (cleanAnonKey) {
+    process.env.VITE_SUPABASE_ANON_KEY = cleanAnonKey;
+  }
+
+  supabaseAdmin = createClient(cleanUrl, cleanServiceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+  isLiveSupabaseActive = true;
+  initReceiptGenerator(supabaseAdmin);
+
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    let envContent = '';
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf-8');
+    }
+    const updateOrAppend = (key: string, val: string) => {
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      if (regex.test(envContent)) {
+        envContent = envContent.replace(regex, `${key}=${JSON.stringify(val)}`);
+      } else {
+        envContent += `\n${key}=${JSON.stringify(val)}`;
+      }
+    };
+    updateOrAppend('VITE_SUPABASE_URL', cleanUrl);
+    updateOrAppend('SUPABASE_URL', cleanUrl);
+    updateOrAppend('SUPABASE_SERVICE_ROLE_KEY', cleanServiceKey);
+    if (cleanAnonKey) {
+      updateOrAppend('VITE_SUPABASE_ANON_KEY', cleanAnonKey);
+    }
+    fs.writeFileSync(envPath, envContent.trim() + '\n', 'utf-8');
+  } catch (fsErr) {
+    console.warn('[Supabase Config] Notice writing .env:', fsErr);
+  }
+}
 
 if (rawSupabaseUrl && supabaseServiceKey) {
   const supabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
@@ -368,10 +416,12 @@ if (rawSupabaseUrl && supabaseServiceKey) {
       autoRefreshToken: false,
     },
   });
+  isLiveSupabaseActive = true;
   console.log('[Supabase] Initialized with configured project URL:', supabaseUrl);
 } else {
   console.warn('[AI Studio] Supabase credentials not found in environment. Using in-memory mock store for local execution.');
   supabaseAdmin = createMockSupabaseAdmin();
+  isLiveSupabaseActive = false;
 }
 
 // Initialize receipt generator with server-authoritative Supabase client
@@ -1110,6 +1160,130 @@ app.get("/api/github/commits", async (_req, res) => {
   }
 
   return res.json({ success: true, commits: [] });
+});
+
+// -------------------------------------------------------------
+// Supabase Database Connection Management & Testing Endpoints
+// -------------------------------------------------------------
+
+// 1. Status of current Supabase connection (Never exposes service-role key)
+app.get("/api/admin/supabase/status", async (_req, res) => {
+  const currentUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const cleanUrl = currentUrl ? currentUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '') : '';
+  const hasServiceKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY.trim().length > 0);
+  const hasAnonKey = Boolean(process.env.VITE_SUPABASE_ANON_KEY && process.env.VITE_SUPABASE_ANON_KEY.trim().length > 0);
+
+  res.json({
+    isConfigured: Boolean(cleanUrl && hasServiceKey),
+    isLive: isLiveSupabaseActive,
+    url: cleanUrl,
+    hasServiceKey,
+    hasAnonKey,
+    source: isLiveSupabaseActive ? "Live Supabase Database (Production)" : "In-Memory Mock Fallback"
+  });
+});
+
+// 2. Save and activate Supabase credentials
+app.post("/api/admin/supabase/config", async (req, res) => {
+  const { url, serviceKey, anonKey } = req.body || {};
+
+  if (!url || !url.trim() || !serviceKey || !serviceKey.trim()) {
+    return res.status(400).json({
+      error: "Supabase Project URL and Service Role Key are required."
+    });
+  }
+
+  const cleanUrl = url.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+  const cleanServiceKey = serviceKey.trim();
+  const cleanAnonKey = (anonKey || '').trim();
+
+  // Validate credentials immediately using a harmless read query to Papers
+  try {
+    const testClient = createClient(cleanUrl, cleanServiceKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data, error } = await testClient
+      .from('Papers')
+      .select('id, unit_code, paper_title, price')
+      .limit(5);
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        isLive: false,
+        error: `Supabase authentication or table query failed: ${error.message}`
+      });
+    }
+
+    // Apply configuration to current runtime and persist to .env
+    applySupabaseConfig(cleanUrl, cleanServiceKey, cleanAnonKey);
+
+    return res.json({
+      success: true,
+      isLive: true,
+      message: "Credentials verified! Successfully connected to live Supabase database.",
+      sampleCount: (data || []).length,
+      sampleRecords: data || []
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      isLive: false,
+      error: `Failed to connect to Supabase: ${err?.message || 'Network error'}`
+    });
+  }
+});
+
+// 3. Test read-only query to existing Papers table (up to 5 records)
+app.post("/api/admin/supabase/test", async (_req, res) => {
+  try {
+    if (!isLiveSupabaseActive) {
+      const mockResult = await supabaseAdmin
+        .from('Papers')
+        .select('id, unit_code, paper_title, price')
+        .limit(5);
+
+      return res.json({
+        success: false,
+        isLive: false,
+        message: "Currently using local mock/demo data. Provide valid Supabase credentials to connect to your live project.",
+        records: mockResult.data || [],
+        count: (mockResult.data || []).length,
+        source: "In-Memory Mock Store (Fallback)"
+      });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('Papers')
+      .select('id, unit_code, paper_title, price')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        isLive: false,
+        error: error.message,
+        message: `Database query failed: ${error.message}`
+      });
+    }
+
+    return res.json({
+      success: true,
+      isLive: true,
+      message: "Successfully queried live production Supabase Papers table!",
+      records: data || [],
+      count: (data || []).length,
+      source: "Live Supabase Database (Production)"
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      isLive: false,
+      error: err?.message || "Internal query error"
+    });
+  }
 });
 
 // Super Admin: List Users

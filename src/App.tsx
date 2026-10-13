@@ -53,11 +53,19 @@ function AppContent() {
     return () => window.removeEventListener('popstate', handleLocationChange);
   }, []);
 
+  const [adminInitialSection, setAdminInitialSection] = useState<'dashboard' | 'supabase'>('dashboard');
+
   const handleOpenAdmin = () => {
+    setAdminInitialSection('dashboard');
     setIsAdminOpen(true);
     if (!window.location.pathname.startsWith('/admin')) {
       window.history.pushState({}, '', '/admin');
     }
+  };
+
+  const handleOpenDatabaseSettings = () => {
+    setAdminInitialSection('supabase');
+    setIsAdminOpen(true);
   };
 
   const handleCloseAdmin = () => {
@@ -183,6 +191,7 @@ function AppContent() {
         onSelectTab={handleSelectTab}
         onContactClick={() => handleSelectTab('contact')}
         onDownloadClick={() => handleSelectTab('search')}
+        onOpenDatabaseSettings={handleOpenDatabaseSettings}
       />
 
       {/* Main Content Body with Smooth Motion Route Transitions */}
@@ -318,6 +327,7 @@ function AppContent() {
         onOpenLegal={handleOpenLegal}
         onOpenAdmin={handleOpenAdmin}
         onOpenAffiliate={() => handleSelectTab('affiliate')}
+        onOpenDatabaseSettings={handleOpenDatabaseSettings}
       />
 
       {/* Full-Screen Slide Modal for Terms & Conditions and Privacy Policy */}
@@ -336,6 +346,7 @@ function AppContent() {
         isLoadingPapers={isLoadingPapers}
         papersError={error}
         onRefreshPapers={loadPapers}
+        initialSection={adminInitialSection}
       />
     </div>
   );

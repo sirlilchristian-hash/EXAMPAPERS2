@@ -243,8 +243,13 @@ export const SearchPaperWorkflow: React.FC<SearchPaperWorkflowProps> = ({
   const lastNPages = Array.from({ length: pageQuantity }, (_, i) => totalPagesForSelected - pageQuantity + i + 1);
 
   const pagesPricing = selectedPaper
-    ? calculateAuthoritativePagesPrice(selectedPaper, lastNPages)
-    : { totalAmount: 0, breakdown: '', pricingModel: 'fixed' as const, unitPriceSummary: '', itemizedDetails: [], isValid: false };
+    ? { 
+        ...calculateAuthoritativePagesPrice(selectedPaper, lastNPages), 
+        totalAmount: pageQuantity * 5, 
+        isValid: pageQuantity >= 1 && pageQuantity <= totalPagesForSelected, 
+        breakdown: `${pageQuantity} pages at KSh 5 per page = KSh ${pageQuantity * 5}` 
+      }
+    : { totalAmount: pageQuantity * 5, breakdown: '', pricingModel: 'fixed' as const, unitPriceSummary: '', itemizedDetails: [], isValid: false };
 
   const fullPaperNumericPrice = selectedPaper
     ? (typeof selectedPaper.price === 'number'
@@ -252,7 +257,7 @@ export const SearchPaperWorkflow: React.FC<SearchPaperWorkflowProps> = ({
         : parseInt(String(selectedPaper.price).replace(/[^\d]/g, '') || '50', 10))
     : 50;
 
-  const finalAmount = purchaseType === 'pages' ? pagesPricing.totalAmount : fullPaperNumericPrice;
+  const finalAmount = purchaseType === 'pages' ? (pageQuantity * 5) : fullPaperNumericPrice;
 
   useEffect(() => {
     if (initialUnitQuery) {
@@ -1134,7 +1139,7 @@ export const SearchPaperWorkflow: React.FC<SearchPaperWorkflowProps> = ({
                       </div>
                     </div>
 
-                    {/* OPTION B: Buy Selected Pages (Last-N-Pages) */}
+                    {/* OPTION B: Buy Selected Pages */}
                     {(() => {
                       const totalPages = Number(selectedPaper.total_pages) || 12;
 
@@ -1158,66 +1163,46 @@ export const SearchPaperWorkflow: React.FC<SearchPaperWorkflowProps> = ({
                             <div className="flex-1 space-y-2">
                               <div className="flex items-center justify-between flex-wrap gap-2">
                                 <span className="font-black text-slate-900 text-sm">
-                                  Option B — Buy Selected Pages (Last N Pages)
+                                  Option B — Buy Selected Pages
                                 </span>
-                                <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                                  {totalPages} pages total
+                                <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-300">
+                                  Total Pages: {totalPages}
                                 </span>
                               </div>
 
                               <p className="text-xs text-slate-600 leading-relaxed">
-                                Purchase the last <strong className="font-extrabold text-slate-900">{pageQuantity}</strong> pages of the document (pages <strong className="font-mono font-bold text-slate-900">{Math.max(1, totalPages - pageQuantity + 1)}–{totalPages}</strong>). Automatically selected from the end of the document.
+                                Enter the number of pages you want to order. Each page is <strong className="font-extrabold text-slate-900">5 Bob</strong> (KSh 5).
                               </p>
 
                               {purchaseType === 'pages' && (
                                 <div className="pt-3 mt-2 border-t border-emerald-200/80 space-y-3">
-                                  <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
-                                    <span className="font-bold text-slate-700">Select Page Quantity (N):</span>
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      {[6, 10, 15, 20, Math.min(totalPages, 30)].filter((q, idx, arr) => q <= totalPages && arr.indexOf(q) === idx).map((qty) => (
-                                        <button
-                                          key={qty}
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); setPageQuantity(qty); }}
-                                          className={`px-3 py-1 font-bold rounded-lg border text-xs transition-all cursor-pointer ${
-                                            pageQuantity === qty
-                                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                                              : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
-                                          }`}
-                                        >
-                                          {qty} Pages
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-
                                   <div className="flex items-center gap-3 text-xs">
-                                    <span className="font-bold text-slate-700">Custom Quantity:</span>
+                                    <span className="font-bold text-slate-700">Number of Pages Ordered:</span>
                                     <input
                                       type="number"
-                                      min="6"
+                                      min="1"
                                       max={totalPages}
                                       value={pageQuantity}
                                       onClick={(e) => e.stopPropagation()}
                                       onChange={(e) => {
                                         const val = parseInt(e.target.value, 10);
-                                        if (!isNaN(val)) setPageQuantity(Math.max(6, Math.min(totalPages, val)));
+                                        if (!isNaN(val)) setPageQuantity(Math.max(1, Math.min(totalPages, val)));
                                       }}
-                                      className="w-20 px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-xs bg-white"
+                                      className="w-24 px-3 py-1.5 rounded-lg border border-slate-300 font-bold text-xs bg-white text-slate-900 shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                                     />
-                                    <span className="text-slate-500 text-[11px]">(Min 6, Max {totalPages})</span>
+                                    <span className="text-slate-500 text-[11px]">(Max {totalPages} pages)</span>
                                   </div>
 
-                                  <div className="p-3.5 bg-emerald-100/60 rounded-xl border border-emerald-300 text-xs space-y-1.5">
-                                    <div className="flex items-center justify-between text-emerald-950">
-                                      <span className="font-bold">Purchased Page Span:</span>
-                                      <span className="font-mono font-black text-emerald-950">
-                                        [{Math.max(1, totalPages - pageQuantity + 1)} ... {totalPages}] ({pageQuantity} pages)
+                                  <div className="p-3.5 bg-emerald-100/60 rounded-xl border border-emerald-300 text-xs space-y-2">
+                                    <div className="flex items-center justify-between text-emerald-950 font-bold">
+                                      <span>Pages Ordered:</span>
+                                      <span className="font-mono text-emerald-900">
+                                        {pageQuantity} of {totalPages} pages
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between text-emerald-950 font-black text-sm pt-1 border-t border-emerald-200">
-                                      <span>Authoritative Amount:</span>
-                                      <span className="text-base text-emerald-800">KSh {pagesPricing.totalAmount}</span>
+                                      <span>Amount to Pay (5 Bob / page):</span>
+                                      <span className="text-base text-emerald-800">KSh {pageQuantity * 5}</span>
                                     </div>
                                   </div>
                                 </div>
